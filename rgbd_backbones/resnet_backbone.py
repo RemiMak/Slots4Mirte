@@ -1,4 +1,3 @@
-import tensorflow as tf
 import keras
 import numpy as np
 
@@ -10,9 +9,9 @@ def get_mobilenet_backbone(image_shape: tuple[int, int]):
         include_top=False,
         input_shape= (*image_shape, 3),
     )
- # just the kernel
+
     modified_mobilenet = keras.applications.MobileNetV2(
-        weights=None,
+        weights=None, # type: ignore
         include_top=False,
         input_shape= (*image_shape, 4),
     )
