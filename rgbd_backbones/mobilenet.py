@@ -1,19 +1,19 @@
 import keras
 import numpy as np
 
-def get_mobilenet_backbone(image_shape: tuple[int, int]):
-    assert image_shape[0] >= 32 and image_shape[1] >= 32 # requirement set by docs
+def get_mobilenet_backbone(resolution: tuple[int, int]):
+    assert resolution[0] >= 32 and resolution[1] >= 32 # requirement set by docs
 
     og_mobilenet = keras.applications.MobileNetV2(
         weights="imagenet",
         include_top=False,
-        input_shape= (*image_shape, 3),
+        input_shape= (*resolution, 3),
     )
 
     modified_mobilenet = keras.applications.MobileNetV2(
         weights=None, # type: ignore
         include_top=False,
-        input_shape= (*image_shape, 4),
+        input_shape= (*resolution, 4),
     )
     
     # find the first conv2D layer
