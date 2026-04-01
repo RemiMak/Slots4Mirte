@@ -37,7 +37,7 @@ def spatial_broadcast(slots, resolution):
 def unstack_and_split(x, batch_size, num_channels=3):
   """Unstack batch dimension and split into channels and alpha mask."""
   unstacked = tf.reshape(x, [batch_size, -1] + x.shape.as_list()[1:])
-  channels, masks = tf.split(unstacked, [num_channels, 1], axis=-1)
+  channels, masks = tf.split(unstacked, [num_channels, 1], axis=-1) # type: ignore
   return channels, masks
 
 class SpatialBroadcastDecoder(layers.Layer):
