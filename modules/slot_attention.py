@@ -16,13 +16,15 @@
 '''
 Modification notice:
 - Extracted SlotAttention class from the original "slot-attention.py" into this file 
+- Replaced batchdot (from keras 2) with einsum (from keras 3)
 '''
 
 '''Slot Attention model for object discovery and set prediction.'''
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras.layers as layers
-
+import keras.layers as layers
+import keras
+from keras import backend as kerasBackend
 
 class SlotAttention(layers.Layer):
   """Slot Attention module."""
@@ -68,7 +70,7 @@ class SlotAttention(layers.Layer):
 
     # Slot update functions.
     self.gru = layers.GRUCell(self.slot_size)
-    self.mlp = tf.keras.Sequential([
+    self.mlp = keras.Sequential([
         layers.Dense(self.mlp_hidden_size, activation="relu"),
         layers.Dense(self.slot_size)
     ], name="mlp")
@@ -81,24 +83,31 @@ class SlotAttention(layers.Layer):
 
     # Initialize the slots. Shape: [batch_size, num_slots, slot_size].
     slots = self.slots_mu + tf.exp(self.slots_log_sigma) * tf.random.normal(
-        [tf.shape(inputs)[0], self.num_slots, self.slot_size])
+        [tf.shape(inputs)[0], self.num_slots, self.slot_size]) # type: ignore
 
     # Multiple rounds of attention.
     for _ in range(self.num_iterations):
       slots_prev = slots
       slots = self.norm_slots(slots)
 
+      '''
+      b = batch_size
+      d = slot_size
+      k = num_slots
+      n = num_inputs
+      '''
+
       # Attention.
       q = self.project_q(slots)  # Shape: [batch_size, num_slots, slot_size].
       q *= self.slot_size ** -0.5  # Normalization.
-      attn_logits = tf.keras.backend.batch_dot(k, q, axes=-1)
+      attn_logits = keras.ops.einsum("bnd, bkd -> bnk", k, q)
       attn = tf.nn.softmax(attn_logits, axis=-1)
       # `attn` has shape: [batch_size, num_inputs, num_slots].
 
       # Weigted mean.
-      attn += self.epsilon
+      attn += self.epsilon # type: ignore
       attn /= tf.reduce_sum(attn, axis=-2, keepdims=True)
-      updates = tf.keras.backend.batch_dot(attn, v, axes=-2)
+      updates = keras.ops.einsum("bnk,bnd->bkd", attn, v)
       # `updates` has shape: [batch_size, num_slots, slot_size].
 
       # Slot update.
